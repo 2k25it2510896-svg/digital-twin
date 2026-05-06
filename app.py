@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import folium
 from streamlit_folium import st_folium
 import datetime
@@ -9,7 +8,7 @@ import datetime
 # ================= CONFIG =================
 st.set_page_config(layout="centered")
 
-# ================= STYLE (Mobile Friendly) =================
+# ================= STYLE =================
 st.markdown("""
 <style>
 .stButton>button {
@@ -21,11 +20,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= LOGIN SYSTEM =================
-users = {
-    "admin": "1234",
-    "student": "psit"
-}
+# ================= LOGIN =================
+users = {"admin": "1234", "student": "psit"}
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -79,17 +75,15 @@ if "pm25" not in st.session_state:
     st.session_state.before = None
     st.session_state.after = None
 
-# ================= MAIN APP =================
+# ================= MAIN =================
 def app():
 
     st.title("🌍 Digital Twin Dashboard")
 
-    # Sidebar Navigation (Mobile Friendly)
     choice = st.sidebar.selectbox("📱 Menu", [
         "Home", "Map", "Trend", "Analysis", "Trees", "AI"
     ])
 
-    # Controls
     st.sidebar.header("⚙ Controls")
     traffic = st.sidebar.slider("Traffic", 0.5, 2.0, 1.2)
     industry = st.sidebar.slider("Industry", 0.5, 2.5, 1.5)
@@ -181,27 +175,20 @@ def app():
                 popup=f"{r['name']} AQI:{int(r['AQI'])}"
             ).add_to(m)
 
-        st_folium(m, width=350, height=400)
+        st_folium(m, use_container_width=True)
 
     # ================= TREND =================
     elif choice == "Trend":
         st.subheader("📈 Trend")
         if len(st.session_state.history) > 1:
-            fig, ax = plt.subplots()
-            ax.plot(st.session_state.history, marker='o')
-            ax.set_xlabel("Time")
-            ax.set_ylabel("PM2.5 (µg/m³)")
-            st.pyplot(fig, use_container_width=True)
+            st.line_chart(st.session_state.history)
         else:
             st.info("Run simulation")
 
     # ================= ANALYSIS =================
     elif choice == "Analysis":
         st.subheader("📊 Analysis")
-        fig, ax = plt.subplots()
-        ax.bar(df["name"], df["AQI"])
-        ax.set_ylabel("AQI")
-        st.pyplot(fig, use_container_width=True)
+        st.bar_chart(df.set_index("name")["AQI"])
 
         st.subheader("🚨 Top 3 Worst Areas")
         top3 = df.sort_values("AQI", ascending=False).head(3)
@@ -213,11 +200,11 @@ def app():
         st.subheader("🌳 Tree Impact")
 
         if st.session_state.before is not None:
-            fig, ax = plt.subplots()
-            ax.plot(st.session_state.before, label="Before")
-            ax.plot(st.session_state.after, label="After")
-            ax.legend()
-            st.pyplot(fig, use_container_width=True)
+            tree_df = pd.DataFrame({
+                "Before": st.session_state.before,
+                "After": st.session_state.after
+            })
+            st.line_chart(tree_df)
 
             impact = ((st.session_state.before - st.session_state.after) /
                       st.session_state.before) * 100
@@ -231,16 +218,16 @@ def app():
 
         for _, r in df.iterrows():
             if r["AQI"] > 300:
-                st.error(f"{r['name']}: Immediate industrial shutdown, vehicle ban, health alert")
+                st.error(f"{r['name']}: Immediate industrial shutdown, vehicle ban")
             elif r["AQI"] > 200:
-                st.warning(f"{r['name']}: Reduce emissions by 30%, enforce traffic control")
+                st.warning(f"{r['name']}: Reduce emissions, control traffic")
             elif r["AQI"] > 100:
-                st.info(f"{r['name']}: Promote public transport, increase greenery")
+                st.info(f"{r['name']}: Promote public transport, greenery")
             else:
                 st.success(f"{r['name']}: Air quality acceptable")
 
     st.markdown("---")
-    st.caption("© 2026 Digital Twin | Mobile Friendly Dashboard")
+    st.caption("© 2026 Digital Twin Dashboard")
 
 # ================= RUN =================
 if not st.session_state.logged_in:
